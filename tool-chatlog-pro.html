@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>聊天记录整理器 · 专业版</title>
+<meta name="description" content="把微信/TG 等聊天记录整理成时间线、承诺提取、待办清单、证据目录、沉默期分析。纯本地运行，数据不离开你的电脑。">
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#fff; --ink:#171a1f; --ink2:#4c5361; --ink3:#828a9a;
+    --line:#e4e7ec; --acc:#1f6feb; --accsoft:#eaf1fe; --ok:#0f766e; --oksoft:#e7f4f2;
+    --warn:#b45309; --warnsoft:#fef3e2; --red:#c8102e; --pro:#7c3aed; --prosoft:#f1eafd;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);line-height:1.7;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:980px;margin:0 auto;padding:28px 16px 80px}
+  header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+  h1{font-size:25px;font-weight:800;letter-spacing:-.01em}
+  h1 small{display:block;font-size:13px;font-weight:500;color:var(--ink3);margin-top:5px}
+  .badge{display:inline-flex;align-items:center;gap:6px;background:var(--oksoft);color:var(--ok);
+    border:1px solid #c9e7e3;border-radius:999px;padding:5px 13px;font-size:12.5px;font-weight:700;white-space:nowrap}
+  .badge.pro{background:var(--prosoft);color:var(--pro);border-color:#ddccf7}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px}
+  .card h2{font-size:16px;font-weight:800;margin-bottom:4px}
+  .card .hint{font-size:13px;color:var(--ink3);margin-bottom:12px}
+  textarea{width:100%;min-height:220px;border:1px solid var(--line);border-radius:10px;padding:13px;
+    font-family:ui-monospace,SFMono-Regular,Consolas,"Courier New",monospace;font-size:13px;line-height:1.6;
+    resize:vertical;color:var(--ink);background:#fbfcfd}
+  textarea:focus{outline:2px solid var(--accsoft);border-color:var(--acc)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center}
+  button{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:9px;padding:9px 15px;
+    font-size:14px;font-weight:600;cursor:pointer;transition:.12s}
+  button:hover{border-color:#c9cfda;background:#f7f8fa}
+  button.primary{background:var(--acc);border-color:var(--acc);color:#fff}
+  button.primary:hover{background:#1a5fd0}
+  button.pro{background:var(--pro);border-color:var(--pro);color:#fff}
+  button.pro:hover{background:#6d28d9}
+  button.ghost{background:transparent}
+  button.sm{padding:5px 11px;font-size:12.5px;border-radius:7px}
+  .filelbl{display:inline-flex;align-items:center;gap:7px;border:1px dashed #c9cfda;border-radius:9px;
+    padding:9px 15px;font-size:14px;font-weight:600;color:var(--ink2);cursor:pointer;background:#fbfcfd}
+  .filelbl:hover{border-color:var(--acc);color:var(--acc)}
+  .filelbl input{display:none}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:16px}
+  .tab{border:none;background:none;padding:10px 14px;font-size:14px;font-weight:700;color:var(--ink3);
+    border-bottom:2px solid transparent;cursor:pointer;border-radius:6px 6px 0 0}
+  .tab.on{color:var(--acc);border-bottom-color:var(--acc)}
+  .pane{display:none}
+  .pane.on{display:block}
+  .stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+  .stat div{background:#fbfcfd;border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+  .stat b{display:block;font-size:21px;font-weight:800;letter-spacing:-.02em}
+  .stat span{font-size:12px;color:var(--ink3)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:#f2f4f7;font-weight:700;white-space:nowrap}
+  tr:nth-child(even) td{background:#fbfcfd}
+  .msg{background:#fbfcfd;border:1px solid var(--line);border-radius:8px;padding:9px 11px;margin:7px 0;font-size:13.5px}
+  .msg .who{font-weight:700;color:var(--acc);margin-right:6px}
+  .msg .tm{color:var(--ink3);font-size:12px;margin-left:6px}
+  .msg.hit{background:var(--warnsoft);border-color:#f3d9ae}
+  .msg.hit .kw{background:#fde68a;border-radius:3px;padding:0 3px;font-weight:700}
+  .msg.silent{background:#f4eefd;border-color:#ddccf7}
+  .msg .gap{font-size:11.5px;color:var(--pro);font-weight:700;display:block;margin-bottom:3px}
+  .empty{color:var(--ink3);font-size:13.5px;padding:14px 0;font-style:italic}
+  .out{white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:13px;
+    background:#fbfcfd;border:1px solid var(--line);border-radius:10px;padding:14px;max-height:460px;overflow:auto}
+  .notice{background:var(--warnsoft);border:1px solid #f3d9ae;border-radius:10px;padding:12px 14px;
+    font-size:13px;color:#7c4a03;margin-bottom:16px}
+  .notice b{color:var(--warn)}
+  .foot{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink3);text-align:center}
+  details{margin-top:10px;font-size:13.5px}
+  details summary{cursor:pointer;font-weight:700;color:var(--acc);padding:6px 0}
+  details pre{background:#fbfcfd;border:1px solid var(--line);border-radius:8px;padding:12px;font-size:12.5px;
+    overflow:auto;margin-top:8px;white-space:pre-wrap}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;background:#171a1f;color:#fff;
+    padding:10px 18px;border-radius:9px;font-size:13.5px;opacity:0;pointer-events:none;transition:.2s;z-index:9}
+  .toast.show{opacity:1}
+  /* 激活层 */
+  .gate{max-width:520px;margin:60px auto;background:var(--card);border:1px solid var(--line);
+    border-radius:18px;padding:36px 32px;text-align:center}
+  .gate .icon{font-size:44px;margin-bottom:10px}
+  .gate h2{font-size:21px;font-weight:800;margin-bottom:8px}
+  .gate p{font-size:13.5px;color:var(--ink2);margin-bottom:8px}
+  .gate input{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:15px;
+    text-align:center;letter-spacing:.08em;font-family:ui-monospace,Consolas,monospace;margin:14px 0 10px}
+  .gate input:focus{outline:2px solid var(--prosoft);border-color:var(--pro)}
+  .gate .err{color:var(--red);font-size:13px;min-height:20px;margin-bottom:8px}
+  .gate .fine{font-size:12px;color:var(--ink3);margin-top:14px;line-height:1.6}
+  .kwchips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+  .kwchip{display:inline-flex;align-items:center;gap:5px;background:var(--accsoft);color:#1a4fbf;
+    border:1px solid #cfdefc;border-radius:999px;padding:3px 6px 3px 11px;font-size:12.5px;font-weight:600}
+  .kwchip button{border:none;background:none;color:#1a4fbf;font-size:14px;padding:0 4px;cursor:pointer;font-weight:800}
+  .kwchip button:hover{color:var(--red)}
+  .kwadd{display:flex;gap:8px;margin-top:6px}
+  .kwadd input{flex:1;border:1px solid var(--line);border-radius:8px;padding:8px 11px;font-size:13.5px}
+  .kwadd input:focus{outline:2px solid var(--accsoft);border-color:var(--acc)}
+  .promptcard{border:1px solid var(--line);border-radius:11px;padding:13px 15px;margin-bottom:10px;background:#fbfcfd}
+  .promptcard h4{font-size:14px;font-weight:800;margin-bottom:3px}
+  .promptcard .use{font-size:12.5px;color:var(--ink3);margin-bottom:8px}
+  .filelist{font-size:12.5px;color:var(--ink2);margin-top:8px}
+  .filelist div{padding:3px 0;border-bottom:1px dashed var(--line)}
+  @media print{.noprint{display:none}.wrap{max-width:none;padding:0}.card{border:none;padding:0;margin-bottom:18px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ 激活门 ============ -->
+  <div id="gate" class="gate" style="display:none">
+    <div class="icon">🔐</div>
+    <h2>聊天记录整理器 · 专业版</h2>
+    <p>请输入购买时获得的激活码解锁专业功能</p>
+    <input id="key" maxlength="19" placeholder="WBP-XXXX-XXXX-XXXX" autocomplete="off">
+    <div class="err" id="keyErr"></div>
+    <button class="pro" id="keyBtn" style="width:100%;padding:12px">激活专业版</button>
+    <p class="fine">
+      激活码在购买成功后发放，一码一用，仅在本机浏览器生效（换电脑/换浏览器需重新激活）。<br>
+      诚实说明：本工具是单个网页文件，任何本地文件都无法做到绝对防拷贝——本激活是一道诚信边界，不是保险箱。请勿传播你的激活码。<br>
+      所有数据处理均在本地完成，激活校验不上传任何信息。
+    </p>
+  </div>
+
+  <!-- ============ 主界面（激活后） ============ -->
+  <div id="app" style="display:none">
+
+  <header>
+    <h1>聊天记录整理器 · 专业版
+      <small>批量导入 / 时间线 / 承诺提取 / 待办清单 / 沉默期分析 / 证据目录 / 12 场景提示词</small>
+    </h1>
+    <span class="badge pro">⚡ 专业版已激活</span>
+  </header>
+
+  <div class="notice">
+    <b>隐私说明：</b>本工具是一个网页文件，所有处理都在你的浏览器里完成，<b>不会把任何内容发送到服务器</b>。你可以断开网络后使用。
+    你可以整理自己的聊天记录；用于他人数据时，请确认你已获得合法授权。
+  </div>
+
+  <div class="card">
+    <h2>第一步 · 导入聊天记录（支持批量）</h2>
+    <p class="hint">直接粘贴文本，或一次选择多个 .txt / .html / .md / .csv 导出文件。多次粘贴或追加的文件会合并为一整份记录再整理。</p>
+    <textarea id="raw" placeholder="把聊天记录粘贴到这里。例如：
+
+张三 2026-03-01 14:22:15
+在吗？那笔款这个月能结吗
+
+李四 2026-03-01 14:25:40
+放心，我这边周五之前一定转你"></textarea>
+    <div class="row">
+      <label class="filelbl">📄 上传导出文件（可多选）
+        <input type="file" id="file" accept=".txt,.html,.htm,.md,.csv" multiple>
+      </label>
+      <button class="primary" id="run">开始整理</button>
+      <button class="ghost" id="append">📎 追加到当前内容</button>
+      <button class="ghost" id="demo">载入示例</button>
+      <button class="ghost" id="clear">清空</button>
+      <span id="cnt" style="font-size:13px;color:var(--ink3)"></span>
+    </div>
+    <div class="filelist" id="filelist"></div>
+    <details>
+      <summary>识别不了的格式？点击这里看支持哪些输入样式</summary>
+      <pre>工具会尽量解析下面几种常见写法，认不出来时会按「整行一条」处理：
+
+1) 发言人 + 时间 在两行（微信 PC 导出常见）
+   张三 2026-03-01 14:22:15
+   消息内容……
+
+2) 时间 + 发言人 在一行
+   [2026-03-01 14:22:15] 张三：消息内容
+
+3) 发言人：消息（无时间）
+   张三：消息内容
+
+4) 只有发言人（按出现顺序编号）
+   张三
+   消息内容
+
+5) 纯段落（每行算一条，发言人显示为「未知」）
+
+6) 中文日期 + 上午/下午：张三 2026年3月1日 下午2:30
+
+上传 .html 文件时会自动剔除标签，只保留文字。</pre>
+    </details>
+  </div>
+
+  <div id="result" style="display:none">
+
+    <div class="stat" id="stats"></div>
+
+    <div class="row noprint" style="margin:0 0 14px">
+      <span style="font-size:13px;color:var(--ink3);font-weight:700">导出整理结果：</span>
+      <button id="expMd" class="sm">⬇ Markdown</button>
+      <button id="expDoc" class="sm">⬇ Word（.doc）</button>
+      <button id="expJson" class="sm">⬇ JSON</button>
+      <button id="copyAll" class="sm">📋 复制纯文本</button>
+    </div>
+
+    <div class="tabs noprint">
+      <button class="tab on" data-p="p1">📅 时间线</button>
+      <button class="tab" data-p="p2">⚠️ 承诺与风险句</button>
+      <button class="tab" data-p="p3">✅ 待办与约定</button>
+      <button class="tab" data-p="p7">🕳 沉默期分析</button>
+      <button class="tab" data-p="p4">📑 证据目录</button>
+      <button class="tab" data-p="p5">👥 发言人统计</button>
+      <button class="tab" data-p="p8">🤖 12 场景提示词</button>
+      <button class="tab" data-p="p9">⚙️ 自定义词库</button>
+    </div>
+
+    <div class="pane on" id="p1">
+      <div class="card">
+        <h2>按时间排序的完整记录</h2>
+        <p class="hint">已按时间戳升序排列；无时间戳的条目保留在原始顺序末尾。</p>
+        <div id="timeline"></div>
+      </div>
+    </div>
+
+    <div class="pane" id="p2">
+      <div class="card">
+        <h2>含承诺 / 风险关键词的句子</h2>
+        <p class="hint">命中「同意、答应、一定、保证、转账、周五之前、尾款、违约、否则」等词，已高亮。词库可在「自定义词库」页增删，改动实时生效。</p>
+        <div id="hits"></div>
+      </div>
+    </div>
+
+    <div class="pane" id="p3">
+      <div class="card">
+        <h2>待办与约定</h2>
+        <p class="hint">从记录中抽取含「下周 / 之前 / 截止 / 需要 / 麻烦 / 请」等时间或动作指向的句子。</p>
+        <div id="todos"></div>
+      </div>
+    </div>
+
+    <div class="pane" id="p7">
+      <div class="card">
+        <h2>沉默期分析</h2>
+        <p class="hint">相邻两条消息间隔超过 <b>24 小时</b>的位置已标出。纠纷场景里，「对方突然消失」和「催告后无回应」往往是最关键的信号——这里帮你把它们从几百条记录里捞出来。</p>
+        <div id="silent"></div>
+      </div>
+    </div>
+
+    <div class="pane" id="p4">
+      <div class="card">
+        <h2>证据目录（可直接打印）</h2>
+        <p class="hint">按日期归档的条目清单，适合作为材料附件或移交清单。点击「打印 / 存 PDF」可用浏览器直接生成 PDF。</p>
+        <div class="row noprint" style="margin:0 0 12px">
+          <button class="primary" id="print">🖨 打印 / 存 PDF</button>
+          <button id="copyEv">📋 复制目录文本</button>
+        </div>
+        <div class="out" id="evdir"></div>
+      </div>
+    </div>
+
+    <div class="pane" id="p5">
+      <div class="card">
+        <h2>发言人发言统计</h2>
+        <p class="hint">按发言条数排序。含平均字数，可用于快速判断对话结构与主导方。</p>
+        <div id="who"></div>
+      </div>
+    </div>
+
+    <div class="pane" id="p8">
+      <div class="card">
+        <h2>12 个场景的 AI 提示词</h2>
+        <p class="hint">选一个最贴近你情况的场景，复制提示词，连同「复制纯文本」得到的整理结果一起发给任意 AI 助手。每条提示词都带好了角色、任务、输出格式和防幻觉约束。</p>
+        <div id="prompts"></div>
+      </div>
+    </div>
+
+    <div class="pane" id="p9">
+      <div class="card">
+        <h2>自定义关键词库</h2>
+        <p class="hint">三类词库都可以增删，保存在本机浏览器里，下次打开仍在。改动会实时影响「承诺与风险句」的高亮和顶部统计。</p>
+        <div id="kwpanel"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="foot">
+    聊天记录整理器 · 专业版 · 单文件离线工具 · 整理你自己的数据<br>
+    本工具不提供任何聊天记录的导出、破解或恢复功能，仅对<b>你已经合法持有</b>的文本做本地整理。
+  </div>
+
+  </div><!-- /app -->
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(id){ return document.getElementById(id); };
+  var toastTimer = null;
+  function toast(msg){
+    var t = $("toast"); t.textContent = msg; t.classList.add("show");
+    clearTimeout(toastTimer); toastTimer = setTimeout(function(){ t.classList.remove("show"); }, 1900);
+  }
+  function esc(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+
+  // ================= 激活 =================
+  // 校验算法：WBP-XXXX-XXXX-XXXX，后 12 位十六进制，其字符累加和 mod 97 的两位
+  // 拼进第 2 组（checksum 组）。诚实声明：单文件本地校验可被绕过，属诚信边界。
+  var LS_KEY = "chatlogpro.key";
+  function checksumOf(hex12){
+    var sum = 0;
+    for(var i=0;i<hex12.length;i++){ sum = (sum * 31 + hex12.charCodeAt(i)) % 997; }
+    return ("0" + (sum % 97)).slice(-2);
+  }
+  function normalizeKey(v){
+    return String(v || "").toUpperCase().replace(/[^A-Z0-9]/g,"");
+  }
+  function validKey(v){
+    var n = normalizeKey(v);
+    if(!/^WBP/.test(n)) return false;
+    if(n.length !== 17) return false;
+    var body = n.slice(3);
+    var cs = body.slice(0,2), hex = body.slice(2);
+    if(!/^\d{2}$/.test(cs) || !/^[0-9A-F]{12}$/.test(hex)) return false;
+    return checksumOf(hex) === cs;
+  }
+  function showApp(){
+    $("gate").style.display = "none";
+    $("app").style.display = "block";
+  }
+  function showGate(){
+    $("gate").style.display = "block";
+    $("app").style.display = "none";
+  }
+  try{
+    var saved = localStorage.getItem(LS_KEY);
+    if(saved && validKey(saved)) showApp(); else showGate();
+  }catch(e){ showGate(); }
+
+  $("keyBtn").onclick = function(){
+    var v = $("key").value;
+    if(!v.trim()){ $("keyErr").textContent = "请输入激活码"; return; }
+    if(!validKey(v)){
+      $("keyErr").textContent = "激活码格式不正确或校验失败，请检查后重试";
+      return;
+    }
+    try{ localStorage.setItem(LS_KEY, normalizeKey(v)); }catch(e){}
+    $("keyErr").textContent = "";
+    showApp();
+    toast("专业版已激活");
+  };
+  $("key").addEventListener("keydown", function(e){ if(e.key === "Enter") $("keyBtn").click(); });
+
+  // ================= 数据 =================
+  var DEMO = [
+    "张三 2026-03-01 14:22:15",
+    "在吗？那笔款这个月能结吗",
+    "李四 2026-03-01 14:25:40",
+    "放心，我这边周五之前一定转你，尾款一共 8600",
+    "张三 2026-03-01 14:26:02",
+    "好，那我等你消息",
+    "李四 2026-03-08 09:10:15",
+    "抱歉抱歉，公司账还没下来，再宽限三天",
+    "张三 2026-03-08 09:12:44",
+    "这已经第二次了。之前说好的 3 月 1 号，现在又拖",
+    "李四 2026-03-11 16:40:09",
+    "真的对不住，下周一定，我把身份证号发你，我保证",
+    "张三 2026-03-11 16:41:20",
+    "不需要身份证。我要一个确切日期",
+    "李四 2026-03-11 16:45:33",
+    "3 月 15 号之前，违约我认"
+  ].join("\n");
+
+  var MSGS = [];
+
+  // ---------- 解析（与免费版同一实现，22 条单测覆盖） ----------
+  function stripHtml(h){
+    var d = document.createElement("div");
+    d.innerHTML = h;
+    d.querySelectorAll("script,style").forEach(function(n){ n.remove(); });
+    var t = d.innerText || d.textContent || "";
+    return t;
+  }
+
+  var RE_TS = /(20\d{2})[-/年.](\d{1,2})[-/月.](\d{1,2})[日号]?\s*(上午|下午|早上|晚上|凌晨)?\s*(\d{1,2}):(\d{2})(?::(\d{2}))?/;
+  function normTs(y,mo,d,h,mi,se){
+    return y + "-" + String(mo).padStart(2,"0") + "-" + String(d).padStart(2,"0") +
+           " " + String(h).padStart(2,"0") + ":" + String(mi).padStart(2,"0") +
+           (se ? ":" + String(se).padStart(2,"0") : "");
+  }
+
+  function parse(text){
+    var lines = text.split(/\r?\n/);
+    var out = [];
+    var cur = null;
+    var lastWho = "";
+
+    function flush(){
+      if(cur){ if(cur.body && String(cur.body).trim()) out.push(cur); cur = null; }
+    }
+
+    for(var i=0;i<lines.length;i++){
+      var line = lines[i].replace(/\s+$/,"").replace(/^\s+/,"");
+      if(!line) continue;
+      var m;
+
+      m = line.match(RE_TS);
+      if(m){
+        var hh = +m[5];
+        var mer = m[4] || "";
+        if((mer === "下午" || mer === "晚上") && hh < 12) hh += 12;
+        if((mer === "上午" || mer === "早上" || mer === "凌晨") && hh === 12) hh = 0;
+        var ts = normTs(m[1], +m[2], +m[3], hh, +m[6], m[7] ? +m[7] : 0);
+        var rest = line.replace(m[0], "\u0000");
+        rest = rest.replace(/^\s*[\[\(（【]\s*/, "").replace(/\u0000\s*[\]\)）】]/, " ");
+        rest = rest.replace(/\u0000/g, " ").replace(/\s+/g, " ").trim();
+        var who = "";
+        var body = rest;
+        var wm = rest.match(/^([^\s:：]{1,20})\s*[:：]\s*(.+)$/);
+        if(wm){ who = wm[1]; body = wm[2]; }
+        else {
+          var wm2 = rest.match(/^([^\s:：]{1,20})\s+(.+)$/);
+          if(wm2){ who = wm2[1]; body = wm2[2]; }
+          else if(rest && rest.length <= 20 && !/[。，！？、；,.!?;]/.test(rest)){
+            who = rest; body = "";
+          }
+        }
+        if(who) lastWho = who; else { who = lastWho || "未知"; }
+        flush();
+        cur = { who: who, ts: ts, body: body, idx: i, structured: true };
+        continue;
+      }
+
+      m = line.match(/^([^\s:：]{1,20})\s*[:：]\s*(.+)$/);
+      if(m){
+        flush();
+        lastWho = m[1];
+        cur = { who: m[1], ts: "", body: m[2], idx: i, structured: true };
+        continue;
+      }
+
+      if(cur && cur.structured){
+        cur.body = cur.body ? (cur.body + "\n" + line) : line;
+      } else {
+        flush();
+        cur = { who: lastWho || "未知", ts: "", body: line, idx: i, structured: false };
+      }
+    }
+    flush();
+    return out.filter(function(m){ return m.body && m.body.trim(); });
+  }
+
+  // ---------- 关键词（可自定义，localStorage 持久化） ----------
+  var KW_DEFAULT = {
+    promise: ["同意","答应","一定","保证","承诺","肯定","确定","签字","盖章","认可","确认无异议","绝不","必然"],
+    money:   ["转账","汇款","尾款","定金","付款","退款","到账","微信支付","支付宝","银行卡","金额","元","块","欠款","结清"],
+    risk:    ["违约","否则","起诉","报警","律师","法院","仲裁","合同","协议","假的","伪造","删了","撤回","威胁","骗"],
+    time:    ["之前","以前","截止","期限","下周","下个月","月底","号之前","日内","马上","立刻","尽快"],
+    todo:    ["需要","麻烦","请","待办","记得","给我","发我","准备","确认","回复","处理","跟进","补","提供"]
+  };
+  var KW_LS = "chatlogpro.kw";
+  var KW = loadKw();
+  function loadKw(){
+    try{
+      var raw = localStorage.getItem(KW_LS);
+      if(raw){
+        var o = JSON.parse(raw);
+        var merged = {};
+        Object.keys(KW_DEFAULT).forEach(function(k){
+          merged[k] = Array.isArray(o[k]) && o[k].length ? o[k].slice() : KW_DEFAULT[k].slice();
+        });
+        return merged;
+      }
+    }catch(e){}
+    return JSON.parse(JSON.stringify(KW_DEFAULT));
+  }
+  function saveKw(){
+    try{ localStorage.setItem(KW_LS, JSON.stringify(KW)); }catch(e){}
+  }
+  function kwOf(kind){ return KW[kind] || []; }
+
+  function has(list, s){ for(var i=0;i<list.length;i++){ if(s.indexOf(list[i]) !== -1) return list[i]; } return null; }
+  function hl(s){
+    var all = kwOf("promise").concat(kwOf("money"), kwOf("risk"));
+    var hit = null;
+    for(var i=0;i<all.length;i++){ if(s.indexOf(all[i]) !== -1){ hit = all[i]; break; } }
+    if(!hit) return esc(s);
+    return esc(s).split(esc(hit)).join('<span class="kw">'+esc(hit)+'</span>');
+  }
+
+  // ---------- 12 场景提示词 ----------
+  var PROMPTS = [
+    ["商务对账", "合作方答应付款但一直拖，要把账要回来", "你是一名严谨的商务对账助手。下面是我与对方的聊天记录（已按时间排序）。请：1. 用表格列出每一次涉及金额、付款时间的承诺：时间 / 发言人 / 承诺内容；2. 标出对方每一次爽约的具体时间点；3. 根据记录，对方目前共欠多少、最后承诺的付款日是哪天；4. 列出我还缺哪些证据（合同、发票、转账记录、签收单）；5. 只依据提供的文本分析，不要推测文本之外的事实，不确定处标注「待核实」。"],
+    ["劳动仲裁", "被欠薪 / 被违法辞退，准备申请劳动仲裁", "你是一名熟悉中国劳动法的材料整理助手。下面是我与用人单位相关人员的聊天记录（已按时间排序）。请：1. 提取所有涉及劳动关系、工资标准、加班、辞退、离职时间的陈述；2. 找出对方承认事实的关键句（如「这个月绩效不发了」）；3. 列出一份证据清单：哪些已有记录、哪些还缺（劳动合同、工资流水、考勤、辞退通知）；4. 指出记录里对我最有利的 3 条原话；5. 不做法律结论，只做事实梳理，不确定处标注「待核实」。"],
+    ["借贷纠纷", "朋友借钱不还，想走法律途径", "你是一名民间借贷纠纷的材料整理助手。下面是我与借款人的聊天记录（已按时间排序）。请：1. 整理出借款合意的形成过程：谁在什么时间借了多少、约定何时还、有无利息约定；2. 找出所有催款记录及对方的回应；3. 找出对方任何承认借款或承诺还款的原话；4. 列出一份「还缺什么」清单（借条、转账凭证、对方身份信息）；5. 只依据文本，不推测，不确定处标注「待核实」。"],
+    ["房屋租赁", "房东不退押金 / 租客损坏拒赔", "你是一名房屋租赁纠纷的材料整理助手。下面是我与房东（或租客）的聊天记录（已按时间排序）。请：1. 提取涉及押金、租金、租期、房屋交接、损坏责任的全部陈述；2. 找出双方各自的承诺与反悔点；3. 整理成「争议焦点表」：焦点 / 我方说法 / 对方说法 / 有无证据；4. 列出还缺的证据（合同、付款记录、入住退房照片、维修记录）；5. 只依据文本，不推测，不确定处标注「待核实」。"],
+    ["装修纠纷", "装修质量不达标 / 拖延工期", "你是一名装修纠纷的材料整理助手。下面是我与装修方（工长、设计师、客服）的聊天记录（已按时间排序）。请：1. 整理合同约定与实际执行的偏差（材料、工期、增项）；2. 找出对方承诺整改但未落实的记录；3. 按「问题 / 承诺整改时间 / 是否兑现」列表；4. 列出还缺的证据（合同、报价单、现场照片、验收单）；5. 只依据文本，不推测，不确定处标注「待核实」。"],
+    ["合作分成", "合作方该分成不给，想对账撕清楚", "你是一名合作分成的对账助手。下面是我与合作方的聊天记录（已按时间排序）。请：1. 提取分成比例、结算周期、各自职责的约定；2. 找出所有涉及收入、结算、转账的数字与时间；3. 整理成「约定 vs 实际」对照表；4. 指出对方可能违约的点；5. 只依据文本，不推测，不确定处标注「待核实」。"],
+    ["求职面试", "面试流程跟踪 / offer 谈判 / 背调疑问", "你是一名求职过程的记录整理助手。下面是我与 HR 或面试官的聊天记录（已按时间排序）。请：1. 整理完整时间线：每次沟通的时间、对象、结论；2. 提取所有涉及薪资、职级、福利、入职时间的承诺；3. 指出哪些是口头承诺、哪些写进了正式文件；4. 列出下一步该问清楚的问题清单；5. 只依据文本，不推测，不确定处标注「待核实」。"],
+    ["婚姻共同财产", "离婚财产分割需要梳理共同财产线索", "你是一名婚姻财产梳理助手。下面是我与配偶的聊天记录（已按时间排序）。请：1. 提取所有涉及房产、车辆、存款、投资、债务的陈述；2. 找出对方承认财产存在的原话；3. 按「财产线索 / 我方掌握情况 / 待核实」列表；4. 列出还缺的凭证；5. 只做事实梳理，不做法律判断，不确定处标注「待核实」。"],
+    ["消费维权", "商家虚假宣传 / 售后推诿", "你是一名消费维权材料整理助手。下面是我与商家的聊天记录（已按时间排序）。请：1. 提取购买过程、商家承诺、售后沟通的完整时间线；2. 找出商家所有承诺（退换、赔偿、质保）及未兑现处；3. 整理成投诉可用的事实清单（含时间点）；4. 列出还缺的证据（订单截图、商品照片、宣传页面存档）；5. 只依据文本，不推测，不确定处标注「待核实」。"],
+    ["邻里物业", "邻里纠纷 / 物业不作为的取证", "你是一名邻里或物业纠纷的材料整理助手。下面是我与邻居、物业、社区的聊天记录（已按时间排序）。请：1. 按时间整理事件经过；2. 找出每一次投诉的时间、对象、处理结果；3. 标出「反映多次未解决」的证据；4. 列出还缺的材料（照片、视频、报警记录、居委会调解记录）；5. 只依据文本，不推测，不确定处标注「待核实」。"],
+    ["团队复盘", "项目出了问题，用聊天记录复盘责任与时间线", "你是一名项目复盘助手。下面是我团队成员的聊天记录（已按时间排序）。请：1. 整理关键决策时间线：谁在什么时候提出了什么、谁拍板；2. 提取风险被提出的时间点与被忽视的过程；3. 总结三个做得好和三个应改进的点；4. 列出下一步行动项（负责人 / 事项 / 期限）；5. 只依据文本，不推测，不确定处标注「待核实」。"],
+    ["个人存档", "把几年的重要聊天记录压缩成可检索的档案", "你是一名个人档案整理助手。下面是我的聊天记录（已按时间排序）。请：1. 按主题分类（工作 / 财务 / 家庭 / 健康 / 其他）；2. 每个主题下整理关键事件与结论；3. 提取所有「约定、承诺、数字、日期」单独列表；4. 指出信息缺口；5. 只依据文本，不推测，不确定处标注「待核实」。"]
+  ];
+
+  // ---------- 渲染 ----------
+  function render(){
+    var list = MSGS.slice().sort(function(a,b){
+      if(a.ts && b.ts) return a.ts < b.ts ? -1 : 1;
+      if(a.ts) return -1;
+      if(b.ts) return 1;
+      return a.idx - b.idx;
+    });
+
+    var whos = {};
+    var days = {};
+    var whoChars = {};
+    list.forEach(function(m){
+      whos[m.who] = (whos[m.who]||0) + 1;
+      whoChars[m.who] = (whoChars[m.who]||0) + m.body.length;
+      if(m.ts) days[m.ts.slice(0,10)] = 1;
+    });
+
+    // 时间跨度与沉默期
+    var timed = list.filter(function(m){ return m.ts; });
+    var span = "—";
+    if(timed.length >= 2){
+      var t0 = new Date(timed[0].ts.replace(" ","T"));
+      var t1 = new Date(timed[timed.length-1].ts.replace(" ","T"));
+      var dd = Math.max(1, Math.round((t1 - t0) / 86400000));
+      span = dd + " 天";
+    }
+    var silents = [];
+    for(var i=1;i<timed.length;i++){
+      var prev = new Date(timed[i-1].ts.replace(" ","T"));
+      var cur  = new Date(timed[i].ts.replace(" ","T"));
+      var gapH = (cur - prev) / 3600000;
+      if(gapH >= 24) silents.push({ before: timed[i-1], after: timed[i], hours: Math.round(gapH) });
+    }
+
+    $("stats").innerHTML =
+      stat(list.length, "总条数") +
+      stat(Object.keys(whos).length, "发言人") +
+      stat(span, "时间跨度") +
+      stat(silents.length, "24h+ 沉默期") +
+      stat(countHits(list, kwOf("promise")), "承诺类句子") +
+      stat(countHits(list, kwOf("money")), "涉及金额/付款");
+
+    function stat(v,l){ return "<div><b>"+v+"</b><span>"+l+"</span></div>"; }
+    function countHits(arr, kws){
+      var n=0; arr.forEach(function(m){ if(has(kws, m.body)) n++; }); return n;
+    }
+
+    // 时间线
+    var tl = "";
+    list.forEach(function(m){
+      tl += '<div class="msg">' +
+        '<span class="who">'+esc(m.who)+'</span>' +
+        (m.ts ? '<span class="tm">'+esc(m.ts)+'</span>' : '') +
+        '<div>'+esc(m.body).replace(/\n/g,"<br>")+'</div></div>';
+    });
+    $("timeline").innerHTML = tl || '<div class="empty">没有可显示的条目</div>';
+
+    // 承诺与风险
+    var hits = "";
+    list.forEach(function(m){
+      var k = has(kwOf("promise").concat(kwOf("money"), kwOf("risk")), m.body);
+      if(k){
+        hits += '<div class="msg hit">' +
+          '<span class="who">'+esc(m.who)+'</span>' +
+          (m.ts ? '<span class="tm">'+esc(m.ts)+'</span>' : '') +
+          '<div>'+hl(m.body).replace(/\n/g,"<br>")+'</div></div>';
+      }
+    });
+    $("hits").innerHTML = hits || '<div class="empty">未命中承诺 / 金额 / 风险关键词。可自行在「时间线」页通读。</div>';
+
+    // 待办
+    var td = "";
+    list.forEach(function(m){
+      var k = has(kwOf("todo").concat(kwOf("time")), m.body);
+      if(k){
+        td += '<div class="msg">' +
+          '<span class="who">'+esc(m.who)+'</span>' +
+          (m.ts ? '<span class="tm">'+esc(m.ts)+'</span>' : '') +
+          '<div>'+esc(m.body).replace(/\n/g,"<br>")+'</div></div>';
+      }
+    });
+    $("todos").innerHTML = td || '<div class="empty">未识别到待办 / 约定类句子。</div>';
+
+    // 沉默期
+    var sl = "";
+    silents.forEach(function(s){
+      sl += '<div class="msg silent">' +
+        '<span class="gap">⏸ 沉默 ' + s.hours + ' 小时</span>' +
+        '<div style="font-size:12.5px;color:var(--ink3)">沉默前 · ' + esc(s.before.ts) + ' ' + esc(s.before.who) + '：' + esc(s.before.body).slice(0,80) + '</div>' +
+        '<div style="font-size:12.5px;margin-top:4px">沉默后 · ' + esc(s.after.ts) + ' ' + esc(s.after.who) + '：' + esc(s.after.body).slice(0,80) + '</div>' +
+        '</div>';
+    });
+    $("silent").innerHTML = sl || '<div class="empty">未发现 24 小时以上的沉默期。</div>';
+
+    // 证据目录
+    var byDay = {};
+    list.forEach(function(m){
+      var d = m.ts ? m.ts.slice(0,10) : "（无时间戳）";
+      (byDay[d] = byDay[d] || []).push(m);
+    });
+    var ev = "聊天记录整理目录（专业版）\n生成时间：" + new Date().toLocaleString("zh-CN") +
+             "\n总条数：" + list.length + "　发言人：" + Object.keys(whos).length +
+             "　时间跨度：" + span + "　24h+沉默期：" + silents.length +
+             "\n========================================\n";
+    Object.keys(byDay).sort().forEach(function(d){
+      ev += "\n【" + d + "】共 " + byDay[d].length + " 条\n";
+      byDay[d].forEach(function(m, i){
+        ev += "  " + (i+1) + ". " + (m.ts ? m.ts.slice(11) + " " : "") + m.who + "：" +
+              m.body.replace(/\n/g, " / ") + "\n";
+      });
+    });
+    ev += "\n========================================\n本目录由本地工具自动生成，未做任何内容修改。\n";
+    $("evdir").textContent = ev;
+
+    // 发言人统计
+    var wk = Object.keys(whos).sort(function(a,b){ return whos[b]-whos[a]; });
+    var wt = '<table><tr><th>发言人</th><th>条数</th><th>占比</th><th>平均字数</th></tr>';
+    wk.forEach(function(w){
+      var pct = (whos[w]/list.length*100).toFixed(1);
+      var avg = Math.round(whoChars[w]/whos[w]);
+      wt += "<tr><td>"+esc(w)+"</td><td>"+whos[w]+"</td><td>"+pct+"%</td><td>"+avg+"</td></tr>";
+    });
+    wt += "</table>";
+    $("who").innerHTML = wt;
+
+    // 12 场景提示词
+    var pc = "";
+    PROMPTS.forEach(function(p, i){
+      pc += '<div class="promptcard"><h4>'+(i+1)+'. '+esc(p[0])+'</h4>' +
+            '<div class="use">适用：'+esc(p[1])+'</div>' +
+            '<button class="sm pro" data-i="'+i+'">📋 复制这条提示词</button></div>';
+    });
+    $("prompts").innerHTML = pc;
+    $("prompts").querySelectorAll("button[data-i]").forEach(function(b){
+      b.onclick = function(){
+        var p = PROMPTS[+b.getAttribute("data-i")];
+        copy(p[2] + "\n\n【聊天记录开始】\n" + buildPlain(list) + "\n【聊天记录结束】", "已复制「"+p[0]+"」提示词");
+      };
+    });
+
+    // 自定义词库面板
+    renderKwPanel();
+
+    $("result").style.display = "block";
+  }
+
+  function renderKwPanel(){
+    var html = "";
+    [["promise","承诺词"],["money","金额词"],["risk","风险词"],["time","时间词"],["todo","待办词"]].forEach(function(pair){
+      var kind = pair[0], label = pair[1];
+      var chips = "";
+      kwOf(kind).forEach(function(w, i){
+        chips += '<span class="kwchip">'+esc(w)+'<button data-k="'+kind+'" data-i="'+i+'" title="删除">×</button></span>';
+      });
+      html += '<div style="margin-bottom:18px"><div style="font-size:13.5px;font-weight:800;margin-bottom:2px">'+label+
+              ' <span style="color:var(--ink3);font-weight:500">（'+kwOf(kind).length+' 个）</span></div>' +
+              '<div class="kwchips">'+chips+'</div>' +
+              '<div class="kwadd"><input data-k="'+kind+'" placeholder="输入新词后点添加" maxlength="12">' +
+              '<button class="sm" data-add="'+kind+'">添加</button></div></div>';
+    });
+    $("kwpanel").innerHTML = html;
+
+    $("kwpanel").querySelectorAll("button[data-i]").forEach(function(b){
+      b.onclick = function(){
+        var kind = b.getAttribute("data-k"), i = +b.getAttribute("data-i");
+        KW[kind].splice(i, 1);
+        saveKw(); render();
+        toast("已删除");
+      };
+    });
+    $("kwpanel").querySelectorAll("button[data-add]").forEach(function(b){
+      b.onclick = function(){
+        var kind = b.getAttribute("data-add");
+        var input = $("kwpanel").querySelector('input[data-k="'+kind+'"]');
+        var v = (input.value || "").trim();
+        if(!v){ toast("请输入要添加的词"); return; }
+        if(kwOf(kind).indexOf(v) !== -1){ toast("这个词已经在词库里"); return; }
+        KW[kind].push(v); saveKw(); render();
+        toast("已添加「"+v+"」");
+      };
+    });
+    $("kwpanel").querySelectorAll("input[data-k]").forEach(function(inp){
+      inp.addEventListener("keydown", function(e){
+        if(e.key === "Enter"){
+          var kind = inp.getAttribute("data-k");
+          $("kwpanel").querySelector('button[data-add="'+kind+'"]').click();
+        }
+      });
+    });
+  }
+
+  function buildPlain(list){
+    var s = "";
+    list.forEach(function(m){
+      s += (m.ts ? m.ts + " " : "") + m.who + "：" + m.body.replace(/\n/g," ") + "\n";
+    });
+    return s;
+  }
+
+  // ---------- 导出 ----------
+  function download(name, content, mime){
+    var blob = new Blob([content], {type: mime || "text/plain;charset=utf-8"});
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    toast("已导出 " + name);
+  }
+  function sortedMsgs(){
+    return MSGS.slice().sort(function(a,b){
+      if(a.ts && b.ts) return a.ts < b.ts ? -1 : 1;
+      if(a.ts) return -1;
+      if(b.ts) return 1;
+      return a.idx - b.idx;
+    });
+  }
+  $("expMd").onclick = function(){
+    var list = sortedMsgs();
+    var md = "# 聊天记录整理（专业版）\n\n生成时间：" + new Date().toLocaleString("zh-CN") + "\n\n";
+    list.forEach(function(m){
+      md += "- **" + esc(m.who) + "**" + (m.ts ? "（" + m.ts + "）" : "") + "：" + m.body.replace(/\n/g,"<br>") + "\n";
+    });
+    download("聊天记录整理.md", md, "text/markdown;charset=utf-8");
+  };
+  $("expDoc").onclick = function(){
+    var list = sortedMsgs();
+    var html = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'><head><meta charset='utf-8'></head><body style='font-family:Microsoft YaHei;font-size:11pt'>";
+    html += "<h2>聊天记录整理（专业版）</h2><p>生成时间：" + new Date().toLocaleString("zh-CN") + "</p><hr>";
+    list.forEach(function(m){
+      html += "<p><b>" + esc(m.who) + "</b>" + (m.ts ? "（" + m.ts + "）" : "") + "：" + esc(m.body).replace(/\n/g,"<br>") + "</p>";
+    });
+    html += "</body></html>";
+    download("聊天记录整理.doc", html, "application/msword");
+  };
+  $("expJson").onclick = function(){
+    var list = sortedMsgs();
+    var obj = {
+      tool: "chatlog-organizer-pro",
+      generated_at: new Date().toISOString(),
+      total: list.length,
+      messages: list.map(function(m){
+        return { who: m.who, ts: m.ts || null, body: m.body };
+      })
+    };
+    download("聊天记录整理.json", JSON.stringify(obj, null, 2), "application/json;charset=utf-8");
+  };
+
+  function copy(text, okMsg){
+    var done = function(){ toast(okMsg || "已复制到剪贴板"); };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done, function(){ fallbackCopy(text); done(); });
+    } else { fallbackCopy(text); done(); }
+  }
+  function fallbackCopy(text){
+    var ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); }catch(e){}
+    document.body.removeChild(ta);
+  }
+
+  // ---------- 事件 ----------
+  function doRun(text){
+    MSGS = parse(text);
+    if(!MSGS.length){ toast("没有解析出有效条目，请检查格式"); return; }
+    render();
+    toast("已整理 " + MSGS.length + " 条");
+    $("result").scrollIntoView({behavior:"smooth", block:"start"});
+  }
+
+  $("run").onclick = function(){
+    var t = $("raw").value;
+    if(!t.trim()){ toast("请先粘贴或上传聊天记录"); return; }
+    doRun(t);
+  };
+
+  $("append").onclick = function(){
+    var t = $("raw").value;
+    if(!t.trim()){ toast("当前没有可追加的内容"); return; }
+    // 追加 = 直接对现有全部内容重新整理（合并多段）
+    doRun(t);
+    toast("已按合并内容重新整理");
+  };
+
+  $("demo").onclick = function(){
+    $("raw").value = DEMO;
+    doRun(DEMO);
+  };
+
+  $("clear").onclick = function(){
+    $("raw").value = ""; MSGS = []; $("result").style.display = "none";
+    $("cnt").textContent = ""; $("filelist").innerHTML = "";
+  };
+
+  $("file").onchange = function(e){
+    var files = e.target.files;
+    if(!files || !files.length) return;
+    var parts = [];
+    var done = 0;
+    Array.prototype.forEach.call(files, function(f){
+      var r = new FileReader();
+      r.onload = function(){
+        var txt = String(r.result || "");
+        if(/\.html?$/i.test(f.name) || /<\s*(div|span|p|table|body)/i.test(txt.slice(0,4000))){
+          txt = stripHtml(txt);
+        }
+        parts.push("【文件：" + f.name + "】\n" + txt);
+        done++;
+        if(done === files.length){
+          $("raw").value = parts.join("\n\n");
+          var total = parts.join("\n\n").length;
+          $("cnt").textContent = files.length + " 个文件 · 共 " + total + " 字符";
+          var fl = "";
+          Array.prototype.forEach.call(files, function(f){
+            fl += "<div>📄 " + esc(f.name) + " · " + f.size + " 字节</div>";
+          });
+          $("filelist").innerHTML = fl;
+          toast(files.length + " 个文件已读入，点「开始整理」");
+        }
+      };
+      r.readAsText(f, "utf-8");
+    });
+    e.target.value = "";
+  };
+
+  document.querySelectorAll(".tab").forEach(function(b){
+    b.onclick = function(){
+      document.querySelectorAll(".tab").forEach(function(x){ x.classList.remove("on"); });
+      document.querySelectorAll(".pane").forEach(function(x){ x.classList.remove("on"); });
+      b.classList.add("on");
+      $(b.getAttribute("data-p")).classList.add("on");
+    };
+  });
+
+  $("print").onclick = function(){ window.print(); };
+  $("copyEv").onclick = function(){ copy($("evdir").textContent, "证据目录已复制"); };
+  $("copyAll").onclick = function(){ copy(buildPlain(sortedMsgs()), "整理结果已复制"); };
+})();
+</script>
+</body>
+</html>
