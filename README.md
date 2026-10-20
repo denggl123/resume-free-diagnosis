@@ -41,3 +41,18 @@
 ---
 
 *公益性质的个人副业实验，零外部融资、零投放预算。网页版落地页见 [index.html](index.html)。*
+
+
+---
+
+# 🧰 聊天记录整理工具（免费）
+
+> 本地处理 · 数据不上传 · 单文件离线可用
+
+## 👉 [免费工具：聊天记录整理器](https://denggl123.github.io/resume-free-diagnosis/tool-chatlog-organizer.html)
+
+粘贴导出的微信/QQ 聊天文本，自动生成：对话时间线、承诺与金额风险高亮、待办事项清单、证据目录、可直接使用的 AI 提示词。全程浏览器本地处理。
+
+- [整理成证据的完整方法指南](https://denggl123.github.io/resume-free-diagnosis/chatlog-evidence.html)（导出 → 固定 → 整理 → 举证）
+- [专业版（批量导入/沉默期分析/导出/提示词库）¥19.9](https://wzyp.cn/item/w38ds3)
+- [店铺主页（6 个在售商品）](https://wzyp.cn/shop/pfmsb6sp)
