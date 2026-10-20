@@ -211,7 +211,32 @@
   <div class="foot">
     聊天记录整理器 · 单文件离线工具 · 整理你自己的数据<br>
     本工具不提供任何聊天记录的导出、破解或恢复功能，仅对<b>你已经合法持有</b>的文本做本地整理。<br>
-    <span style="opacity:.85">需要更系统的整理方法论、场景模板和 AI 提示词？见 <a href="https://wzyp.cn/item/wjyf7s" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">店铺知识商品</a>。</span>
+    <div style="margin:10px 0 6px">
+      <a href="https://wzyp.cn/shop/pfmsb6sp" target="_blank" rel="noopener" style="color:#fff;background:#07c160;padding:6px 14px;border-radius:6px;text-decoration:none;font-size:13px">进店看看（6 个在售商品）</a>
+      <a href="https://wzyp.cn/item/w38ds3" target="_blank" rel="noopener" style="color:#07c160;border:1px solid #07c160;padding:6px 14px;border-radius:6px;text-decoration:none;font-size:13px;margin-left:8px">专业版 ¥19.9</a>
+      <a href="https://wzyp.cn/item/lwacs2" target="_blank" rel="noopener" style="color:#07c160;border:1px solid #07c160;padding:6px 14px;border-radius:6px;text-decoration:none;font-size:13px;margin-left:8px">整理完全指南 ¥9.9</a>
+    </div>
+    <span style="opacity:.85">提示词模板库 ¥4.9 · 办公效率清单 ¥6.9 · 避坑手册 ¥4.9，都在店里。觉得工具好用，欢迎转发给需要的朋友——</span>
+    <button id="shareBtn" style="background:none;border:1px solid currentColor;color:inherit;border-radius:6px;padding:4px 12px;font-size:13px;cursor:pointer;margin-left:4px">复制分享文案</button>
+    <script>
+    (function(){
+      var b = document.getElementById("shareBtn");
+      if (!b) return;
+      b.addEventListener("click", function(){
+        var txt = "推荐一个免费的聊天记录整理工具：粘贴微信/QQ导出文本，自动生成时间线、待办清单和证据目录，全程本地处理不上传。工具+使用教程：https://denggl123.github.io/resume-free-diagnosis/tool-chatlog-organizer.html";
+        function done(){ b.textContent = "已复制，去粘贴给朋友"; setTimeout(function(){ b.textContent = "复制分享文案"; }, 2000); }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(txt).then(done, function(){ fallback(); });
+        } else { fallback(); }
+        function fallback(){
+          var ta = document.createElement("textarea");
+          ta.value = txt; document.body.appendChild(ta); ta.select();
+          try { document.execCommand("copy"); done(); } catch(e) {}
+          document.body.removeChild(ta);
+        }
+      });
+    })();
+    </script>
   </div>
 </div>
 
